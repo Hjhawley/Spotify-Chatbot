@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext
+from tkinter import ttk
 from dotenv import load_dotenv
 import os
 import openai
@@ -35,6 +36,16 @@ class ChatbotApp:
         self.send_button = tk.Button(self.root, text="Send", command=self.send_message)
         self.send_button.pack(padx=10, pady=10, side=tk.RIGHT)
 
+        self.temperature_label = tk.Label(self.root, text="Temperature")
+        self.temperature_label.pack(pady=5)
+        
+        self.temperature_slider = ttk.Scale(self.root, from_=0, to=2, orient='horizontal', value=0.7)
+        self.temperature_slider.pack(pady=5, fill=tk.X, padx=10)
+        self.temperature_slider.bind("<Motion>", self.update_temperature_label)
+
+        self.temperature_value_label = tk.Label(self.root, text=f"{self.temperature_slider.get():.1f}")
+        self.temperature_value_label.pack(pady=5)
+
     def display_message(self, sender, message):
         self.chat_history.config(state='normal')
         self.chat_history.insert(tk.END, f"{sender}: {message}\n")
@@ -50,19 +61,24 @@ class ChatbotApp:
             self.get_response(user_message)
 
     def get_response(self, user_message):
+        temperature = self.temperature_slider.get()
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are an AI chatbot. You are friendly and conversational."},
                     {"role": "user", "content": user_message}
-                ]
+                ],
+                temperature=temperature
             )
-            bot_message = response.choices[0].message['content']
+            bot_message = response.choices[0].message['content'] # Extract the chatbot's reply
         except Exception as e:
             bot_message = f"Error: {str(e)}"
         self.display_message("Chatbot", bot_message)
         self.history.add_message("Chatbot", bot_message)
+
+    def update_temperature_label(self, event=None):
+        self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")
 
 if __name__ == "__main__":
     root = tk.Tk()
