@@ -50,14 +50,17 @@ class ChatbotApp:
             self.get_response(user_message)
 
     def get_response(self, user_message):
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are an AI chatbot. You are friendly and covnersational."},
-                {"role": "user", "content": user_message}
-            ]
-        )
-        bot_message = response.choices[0].message['content'] # Extract the chatbot's reply
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an AI chatbot. You are friendly and conversational."},
+                    {"role": "user", "content": user_message}
+                ]
+            )
+            bot_message = response.choices[0].message['content']
+        except Exception as e:
+            bot_message = f"Error: {str(e)}"
         self.display_message("Chatbot", bot_message)
         self.history.add_message("Chatbot", bot_message)
 
