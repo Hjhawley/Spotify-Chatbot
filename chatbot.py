@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 import openai
 
-# Load OpenAI API key
+# Load OpenAI API key from .env file
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -46,7 +46,7 @@ class ChatbotApp:
         if user_message.strip():
             self.display_message("User", user_message)
             self.history.add_message("User", user_message)
-            self.user_input.delete(0, tk.END)
+            self.user_input.delete(0, tk.END) # Clear the input field
             self.get_response(user_message)
 
     def get_response(self, user_message):
@@ -57,7 +57,7 @@ class ChatbotApp:
                 {"role": "user", "content": user_message}
             ]
         )
-        bot_message = response.choices[0].message['content']
+        bot_message = response.choices[0].message['content'] # Extract the chatbot's reply
         self.display_message("Chatbot", bot_message)
         self.history.add_message("Chatbot", bot_message)
 
