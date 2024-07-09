@@ -19,6 +19,13 @@ class MessageHistory:
     def get_messages(self):
         return self.messages
 
+    def format_message_history(self):
+        formatted_messages = [{"role": "system", "content": "You are an AI chatbot. You are friendly and conversational."}]
+        for msg in self.messages:
+            role = "user" if msg["sender"] == "User" else "assistant"
+            formatted_messages.append({"role": role, "content": msg["message"]})
+        return formatted_messages
+
 class ChatbotApp:
     def __init__(self, root):
         self.root = root
@@ -58,17 +65,14 @@ class ChatbotApp:
             self.display_message("User", user_message)
             self.history.add_message("User", user_message)
             self.user_input.delete(0, tk.END) # Clear the input field
-            self.get_response(user_message)
+            self.get_response() # Pass the entire message history as input
 
-    def get_response(self, user_message):
+    def get_response(self):
         temperature = self.temperature_slider.get()
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are an AI chatbot. You are friendly and conversational."},
-                    {"role": "user", "content": user_message}
-                ],
+                messages=self.history.format_message_history(),
                 temperature=temperature
             )
             bot_message = response.choices[0].message['content'] # Extract the chatbot's reply
