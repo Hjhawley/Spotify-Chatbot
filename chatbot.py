@@ -3,11 +3,11 @@ from tkinter import scrolledtext
 from tkinter import ttk
 from dotenv import load_dotenv
 import os
-import openai
+from openai import OpenAI
 
 # Load OpenAI API key from .env file
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
 
 class MessageHistory:
     def __init__(self):
@@ -70,7 +70,7 @@ class ChatbotApp:
     def get_response(self):
         temperature = self.temperature_slider.get()
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=self.history.format_message_history(),
                 temperature=temperature
