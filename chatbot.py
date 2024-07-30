@@ -4,6 +4,7 @@ from tkinter import ttk
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
+import threading
 
 # Load OpenAI API key from .env file
 load_dotenv()
@@ -30,28 +31,34 @@ class ChatbotApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Chatbot")
-        
+
         self.history = MessageHistory()
-        
+
         self.chat_history = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, state='disabled')
         self.chat_history.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        
-        self.user_input = tk.Entry(self.root, width=80)
-        self.user_input.pack(padx=10, pady=10, side=tk.LEFT, fill=tk.X, expand=True)
-        self.user_input.bind("<Return>", self.send_message)
-        
-        self.send_button = tk.Button(self.root, text="Send", command=self.send_message)
-        self.send_button.pack(padx=10, pady=10, side=tk.RIGHT)
 
-        self.temperature_label = tk.Label(self.root, text="Temperature")
-        self.temperature_label.pack(pady=5)
-        
-        self.temperature_slider = ttk.Scale(self.root, from_=0, to=2, orient='horizontal', value=0.7)
-        self.temperature_slider.pack(pady=5, fill=tk.X, padx=10)
+        self.input_frame = tk.Frame(self.root)
+        self.input_frame.pack(padx=10, pady=10, fill=tk.X, expand=True)
+
+        self.user_input = tk.Entry(self.input_frame, width=80)
+        self.user_input.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.user_input.bind("<Return>", self.send_message)
+
+        self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_message)
+        self.send_button.pack(side=tk.RIGHT)
+
+        self.temperature_frame = tk.Frame(self.root)
+        self.temperature_frame.pack(pady=5, fill=tk.X)
+
+        self.temperature_label = tk.Label(self.temperature_frame, text="Temperature")
+        self.temperature_label.pack(side=tk.LEFT)
+
+        self.temperature_slider = ttk.Scale(self.temperature_frame, from_=0, to=2, orient='horizontal', value=0.7)
+        self.temperature_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.temperature_slider.bind("<Motion>", self.update_temperature_label)
 
-        self.temperature_value_label = tk.Label(self.root, text=f"{self.temperature_slider.get():.1f}")
-        self.temperature_value_label.pack(pady=5)
+        self.temperature_value_label = tk.Label(self.temperature_frame, text=f"{self.temperature_slider.get():.1f}")
+        self.temperature_value_label.pack(side=tk.RIGHT)
 
     def display_message(self, sender, message):
         self.chat_history.config(state='normal')
@@ -64,8 +71,8 @@ class ChatbotApp:
         if user_message.strip():
             self.display_message("User", user_message)
             self.history.add_message("User", user_message)
-            self.user_input.delete(0, tk.END) # Clear the input field
-            self.get_response() # Pass the entire message history as input
+            self.user_input.delete(0, tk.END)
+            threading.Thread(target=self.get_response).start()  # Use threading for async response
 
     def get_response(self):
         temperature = self.temperature_slider.get()
