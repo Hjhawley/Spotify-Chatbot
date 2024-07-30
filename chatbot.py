@@ -22,7 +22,7 @@ class MessageHistory:
         return self.messages
 
     def format_message_history(self):
-        formatted_messages = [{"role": "system", "content": "You are an AI chatbot designed to create and populate Spotify playlists for users."}]
+        formatted_messages = [{"role": "system", "content": "You are an AI chatbot designed to create and populate Spotify playlists for users. Maintain a clear, conversational, helpful tone. Ask questions when necessary."}]
         for msg in self.messages:
             role = "user" if msg["sender"] == "User" else "assistant"
             formatted_messages.append({"role": role, "content": msg["message"]})
