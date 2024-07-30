@@ -4,9 +4,11 @@ from tkinter import ttk
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 import threading
 
-# Load OpenAI API key from .env file
+# Load OpenAI and Spotify API keys from .env file
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -34,6 +36,8 @@ class ChatbotApp:
 
         self.history = MessageHistory()
 
+        self.sp = self.authenticate_spotify()
+
         self.chat_history = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, state='disabled')
         self.chat_history.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
@@ -59,6 +63,19 @@ class ChatbotApp:
 
         self.temperature_value_label = tk.Label(self.temperature_frame, text=f"{self.temperature_slider.get():.1f}")
         self.temperature_value_label.pack(side=tk.RIGHT)
+
+    def authenticate_spotify(self) -> spotipy.Spotify:
+        scope = os.getenv("SPOTIPY_SCOPE")
+        client_id = os.getenv("SPOTIPY_CLIENT_ID")
+        client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
+        redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
+
+        if not all([scope, client_id, client_secret, redirect_uri]):
+            raise ValueError("Spotify API credentials are missing in .env file.")
+
+        auth_manager = SpotifyOAuth(client_id, client_secret, redirect_uri, scope=scope)
+        sp = spotipy.Spotify(auth_manager=auth_manager)
+        return sp
 
     def display_message(self, sender, message):
         self.chat_history.config(state='normal')
