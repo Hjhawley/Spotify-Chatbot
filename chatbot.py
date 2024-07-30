@@ -107,8 +107,3 @@ class ChatbotApp:
 
     def update_temperature_label(self, event=None):
         self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = ChatbotApp(root)
-    root.mainloop()

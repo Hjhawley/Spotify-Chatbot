@@ -1,2 +1,5 @@
 openai
 python-dotenv
+spotipy
+fuzzywuzzy
+levenshtein
