@@ -22,7 +22,7 @@ class MessageHistory:
         return self.messages
 
     def format_message_history(self):
-        formatted_messages = [{"role": "system", "content": "You are an AI chatbot. You are friendly and conversational."}]
+        formatted_messages = [{"role": "system", "content": "You are an AI chatbot designed to create and populate Spotify playlists for users."}]
         for msg in self.messages:
             role = "user" if msg["sender"] == "User" else "assistant"
             formatted_messages.append({"role": role, "content": msg["message"]})
@@ -34,11 +34,9 @@ class ChatbotApp:
         self.root.title("Chatbot")
 
         self.history = MessageHistory()
-        self.sp = authenticate_spotify()
-        self.user = self.sp.current_user()
 
-        self.chat_history = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, state='disabled')
-        self.chat_history.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        self.history_display = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, state='disabled')
+        self.history_display.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         self.input_frame = tk.Frame(self.root)
         self.input_frame.pack(padx=10, pady=10, fill=tk.X, expand=True)
@@ -63,11 +61,26 @@ class ChatbotApp:
         self.temperature_value_label = tk.Label(self.temperature_frame, text=f"{self.temperature_slider.get():.1f}")
         self.temperature_value_label.pack(side=tk.RIGHT)
 
+        # Schedule the authentication message to be displayed after the GUI is set up
+        self.root.after(100, self.spotify_auth_message)
+
+    def spotify_auth_message(self):
+        try:
+            self.sp = authenticate_spotify()
+            self.user = self.sp.current_user()
+            sp_message = f"Successfully authenticated user {self.user['display_name']}"
+            self.display_message("Spotify", sp_message)
+            self.history.add_message("Spotify", sp_message)
+        except Exception as e:
+            sp_message = f"Error during Spotify authentication: {str(e)}"
+            self.display_message("Spotify", sp_message)
+            self.history.add_message("Spotify", sp_message)
+
     def display_message(self, sender, message):
-        self.chat_history.config(state='normal')
-        self.chat_history.insert(tk.END, f"{sender}: {message}\n")
-        self.chat_history.config(state='disabled')
-        self.chat_history.yview(tk.END)
+        self.history_display.config(state='normal')
+        self.history_display.insert(tk.END, f"{sender}: {message}\n")
+        self.history_display.config(state='disabled')
+        self.history_display.yview(tk.END)
 
     def send_message(self, event=None):
         user_message = self.user_input.get()
