@@ -7,7 +7,7 @@ from openai import OpenAI
 
 # Load OpenAI API key from .env file
 load_dotenv()
-client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class MessageHistory:
     def __init__(self):
@@ -75,7 +75,7 @@ class ChatbotApp:
                 messages=self.history.format_message_history(),
                 temperature=temperature
             )
-            bot_message = response.choices[0].message['content'] # Extract the chatbot's reply
+            bot_message = response.choices[0].message.content
         except Exception as e:
             bot_message = f"Error: {str(e)}"
         self.display_message("Chatbot", bot_message)
