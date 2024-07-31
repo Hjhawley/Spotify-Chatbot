@@ -19,6 +19,10 @@ def authenticate_spotify() -> spotipy.Spotify:
     sp = spotipy.Spotify(auth_manager=auth_manager)
     return sp
 
+def create_playlist(sp, user_id, playlist_name):
+    playlist = sp.user_playlist_create(user_id, playlist_name)
+    return playlist['id']
+
 def find_best_track_match(tracks, query):
     best_match, best_score = None, 0
     for track in tracks:
@@ -30,10 +34,6 @@ def find_best_track_match(tracks, query):
             best_match = track
             best_score = match_score
     return best_match
-
-def create_playlist(sp, user_id, playlist_name):
-    playlist = sp.user_playlist_create(user_id, playlist_name)
-    return playlist['id']
 
 def search_track(sp, track_name, artist_name):
     results = sp.search(q=f"track:{track_name} artist:{artist_name}", type='track')
