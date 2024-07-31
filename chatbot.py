@@ -62,7 +62,7 @@ class ChatbotApp:
         self.temperature_value_label.pack(side=tk.RIGHT)
 
         # Schedule the authentication message to be displayed after the GUI is set up
-        self.root.after(100, self.spotify_auth_message)
+        self.root.after(10, self.spotify_auth_message)
 
     def spotify_auth_message(self):
         try:
