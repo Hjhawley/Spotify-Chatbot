@@ -25,7 +25,7 @@ def create_playlist(sp, user_id, playlist_name):
     playlist = sp.user_playlist_create(user_id, playlist_name)
     return playlist['id']
 
-""" def find_best_track_match(tracks, query):
+def find_best_track_match(tracks, query):
     best_match, best_score = None, 0
     for track in tracks:
         track_name = track['name']
@@ -45,6 +45,11 @@ def search_track(sp, track_name, artist_name):
     best_match = find_best_track_match(tracks, f"{artist_name} {track_name}")
     return best_match['uri'] if best_match else None
 
-def add_track_to_playlist(sp, user_id, playlist_id, track_uri):
-    sp.user_playlist_add_tracks(user_id, playlist_id, [track_uri])
- """
+def add_tracks_to_playlist(sp, user_id, playlist_id, songs):
+    track_uris = []
+    for song in songs:
+        track_uri = search_track(sp, song['track_name'], song['artist_name'])
+        if track_uri:
+            track_uris.append(track_uri)
+    sp.user_playlist_add_tracks(user_id, playlist_id, track_uris)
+    return track_uris

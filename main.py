@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import json
 from openai import OpenAI
-from spotify_interface import authenticate_spotify, create_playlist
+from spotify_interface import authenticate_spotify, create_playlist, add_tracks_to_playlist
 import threading
 
 # Load OpenAI and Spotify API keys from .env file
@@ -121,6 +121,35 @@ class ChatbotApp:
                         "required": ["playlist_name"],
                     },
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "add_tracks_to_playlist",
+                    "description": "Add multiple tracks to a specified playlist.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "playlist_id": {
+                                "type": "string",
+                                "description": "The ID of the playlist",
+                            },
+                            "songs": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "track_name": {"type": "string"},
+                                        "artist_name": {"type": "string"}
+                                    },
+                                    "required": ["track_name", "artist_name"]
+                                },
+                                "description": "A list of songs to add to the playlist"
+                            }
+                        },
+                        "required": ["playlist_id", "songs"],
+                    },
+                }
             }
         ]
         try:
@@ -136,7 +165,10 @@ class ChatbotApp:
             if tool_calls:
                 print(f"Calling a tool: {tool_calls[0]}")
                 self.history.add_message("assistant", bot_message.content)
-                available_functions = {"create_playlist": create_playlist}
+                available_functions = {
+                    "create_playlist": create_playlist,
+                    "add_tracks_to_playlist": self.handle_add_tracks_to_playlist
+                }
                 for tool_call in tool_calls:
                     print(f"Tool call: {tool_call}")
                     function_name = tool_call.function.name
@@ -148,7 +180,10 @@ class ChatbotApp:
                         user_id=user_id,
                         **args)
                     self.history.add_message("tool", function_response)
-                    self.display_message("Chatbot", f"Playlist '{args['playlist_name']}' created successfully.")
+                    if function_name == "create_playlist":
+                        self.display_message("Chatbot", f"Playlist '{args['playlist_name']}' created successfully.")
+                    elif function_name == "add_tracks_to_playlist":
+                        self.display_message("Chatbot", f"Tracks added to playlist '{args['playlist_id']}' successfully.")
                 # After tool call, respond back to user to continue the conversation
                 second_response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
@@ -170,6 +205,13 @@ class ChatbotApp:
             bot_message = f"Error: {str(e)}"
             self.display_message("Chatbot", bot_message)
             self.history.add_message("Chatbot", bot_message)
+
+    def handle_add_tracks_to_playlist(self, playlist_id, songs):
+        try:
+            track_uris = add_tracks_to_playlist(sp, user_id, playlist_id, songs)
+            return f"Tracks added to playlist '{playlist_id}': {track_uris}."
+        except Exception as e:
+            return f"Error adding tracks to playlist: {str(e)}"
 
     def update_temperature_label(self, event=None):
         self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")
