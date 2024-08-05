@@ -20,7 +20,10 @@ class MessageHistory:
         self.messages = []
 
     def add_message(self, sender, message):
-        self.messages.append({"sender": sender, "message": message})
+        if message:  # Make sure the message is not 'None'
+            self.messages.append({"sender": sender, "message": message})
+        else:
+            print(f"Attempted to add None message from {sender}.")
 
     def get_messages(self):
         return self.messages
@@ -81,10 +84,13 @@ class ChatbotApp:
             self.history.add_message("Spotify", sp_message)
 
     def display_message(self, sender, message):
-        self.history_display.config(state='normal')
-        self.history_display.insert(tk.END, f"{sender}: {message}\n")
-        self.history_display.config(state='disabled')
-        self.history_display.yview(tk.END)
+        if message:
+            self.history_display.config(state='normal')
+            self.history_display.insert(tk.END, f"{sender}: {message}\n")
+            self.history_display.config(state='disabled')
+            self.history_display.yview(tk.END)
+        else:
+            print(f"Attempted to display None message from {sender}.")
 
     def send_message(self, event=None):
         user_message = self.user_input.get()
@@ -97,24 +103,24 @@ class ChatbotApp:
     def get_response(self):
         temperature = self.temperature_slider.get()
         tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "create_playlist",
-                "description": "Create an empty playlist with an appropriate name",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "playlist_name": {
-                            "type": "string",
-                            "description": "The name of the playlist",
-                        }
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_playlist",
+                    "description": "Create an empty playlist with an appropriate name.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "playlist_name": {
+                                "type": "string",
+                                "description": "The name of the playlist",
+                            }
+                        },
+                        "required": ["playlist_name"],
                     },
-                    "required": ["playlist_name"],
-                },
+                }
             }
-        }
-]
+        ]
         try:
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -139,25 +145,29 @@ class ChatbotApp:
                         sp=sp,
                         user_id=user_id,
                         **args)
-                    self.history.add_message(
-                        {"tool_call_id": tool_call.id,
-                         "role": "tool",
-                         "name": function_name,
-                         "content": function_response}
-                    )
+                    self.history.add_message("tool", function_response)
+                    self.display_message("Chatbot", f"Playlist '{args['playlist_name']}' created successfully.")
+                # After tool call, respond back to user to continue the conversation
                 second_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=self.history.format_message_history(),
+                    model="gpt-3.5-turbo",
+                    messages=self.history.format_message_history(),
                 )
                 second_bot_message = second_response.choices[0].message
-                self.display_message("Chatbot", second_bot_message.content)
-                self.history.add_message("Chatbot", second_bot_message.content)
+                if second_bot_message.content:
+                    self.display_message("Chatbot", second_bot_message.content)
+                    self.history.add_message("Chatbot", second_bot_message.content)
+                else:
+                    error_message = "Received empty response from Chatbot."
+                    self.display_message("Chatbot", error_message)
+                    self.history.add_message("Chatbot", error_message)
             else:
                 self.display_message("Chatbot", bot_message.content)
                 self.history.add_message("Chatbot", bot_message.content)
 
         except Exception as e:
             bot_message = f"Error: {str(e)}"
+            self.display_message("Chatbot", bot_message)
+            self.history.add_message("Chatbot", bot_message)
 
     def update_temperature_label(self, event=None):
         self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")
