@@ -12,8 +12,8 @@ import threading
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-sp=authenticate_spotify()
-user_id=sp.current_user()
+sp = authenticate_spotify()
+user_id = sp.current_user()['id']
 
 class MessageHistory:
     def __init__(self):

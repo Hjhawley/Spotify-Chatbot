@@ -20,6 +20,8 @@ def authenticate_spotify() -> spotipy.Spotify:
     return sp
 
 def create_playlist(sp, user_id, playlist_name):
+    if isinstance(user_id, dict) and 'id' in user_id:
+        user_id = user_id['id']
     playlist = sp.user_playlist_create(user_id, playlist_name)
     return playlist['id']
 
