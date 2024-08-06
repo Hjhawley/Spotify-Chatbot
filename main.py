@@ -31,7 +31,7 @@ class MessageHistory:
     def format_message_history(self):
         formatted_messages = [
             {"role": "system", "content": "You are an AI chatbot designed to create and populate Spotify playlists for users. Maintain a clear, conversational, helpful tone. Ask questions when necessary, and get to know the user in order to understand their tastes and their goal. If the user requests something specific, like including a particular song, follow their instructions. If they don't specify, be creative and decide for yourself."}
-            ]
+        ]
         for msg in self.messages:
             role = "user" if msg["sender"] == "User" else "assistant"
             formatted_messages.append({"role": role, "content": msg["message"]})
@@ -166,7 +166,7 @@ class ChatbotApp:
                 print(f"Calling a tool: {tool_calls[0]}")
                 self.history.add_message("assistant", bot_message.content)
                 available_functions = {
-                    "create_playlist": create_playlist,
+                    "create_playlist": self.handle_create_playlist,
                     "add_tracks_to_playlist": self.handle_add_tracks_to_playlist
                 }
                 for tool_call in tool_calls:
@@ -175,13 +175,26 @@ class ChatbotApp:
                     print(f"Function Name: {function_name}")
                     function_to_call = available_functions[function_name]
                     args = json.loads(tool_call.function.arguments)
-                    function_response = function_to_call(
-                        sp=sp,
-                        user_id=user_id,
-                        **args)
-                    self.history.add_message("tool", function_response)
+                    function_response = function_to_call(**args)
+                    self.history.add_message("tool", json.dumps(function_response))  # Ensuring object format
                     if function_name == "create_playlist":
-                        self.display_message("Chatbot", f"Playlist '{args['playlist_name']}' created successfully.")
+                        playlist_id = function_response['playlist_id']
+                        self.display_message("Chatbot", function_response['message'])
+                        # After creating the playlist, add tracks to it
+                        songs = [
+                            {"track_name": "Smells Like Teen Spirit", "artist_name": "Nirvana"},
+                            {"track_name": "Black", "artist_name": "Pearl Jam"},
+                            {"track_name": "Would?", "artist_name": "Alice In Chains"},
+                            {"track_name": "Man in the Box", "artist_name": "Alice In Chains"},
+                            {"track_name": "Plush", "artist_name": "Stone Temple Pilots"},
+                            {"track_name": "Rooster", "artist_name": "Alice In Chains"},
+                            {"track_name": "Come As You Are", "artist_name": "Nirvana"},
+                            {"track_name": "Spoonman", "artist_name": "Soundgarden"},
+                            {"track_name": "Interstate Love Song", "artist_name": "Stone Temple Pilots"},
+                            {"track_name": "Heart-Shaped Box", "artist_name": "Nirvana"}
+                        ]
+                        add_tracks_response = self.handle_add_tracks_to_playlist(playlist_id=playlist_id, songs=songs)
+                        self.display_message("Chatbot", add_tracks_response)
                     elif function_name == "add_tracks_to_playlist":
                         self.display_message("Chatbot", f"Tracks added to playlist '{args['playlist_id']}' successfully.")
                 # After tool call, respond back to user to continue the conversation
@@ -205,6 +218,10 @@ class ChatbotApp:
             bot_message = f"Error: {str(e)}"
             self.display_message("Chatbot", bot_message)
             self.history.add_message("Chatbot", bot_message)
+
+    def handle_create_playlist(self, playlist_name):
+        playlist_id = create_playlist(sp, user_id, playlist_name)
+        return {"playlist_id": playlist_id, "message": f"Playlist '{playlist_name}' created successfully."}
 
     def handle_add_tracks_to_playlist(self, playlist_id, songs):
         try:
