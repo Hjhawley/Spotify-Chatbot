@@ -4,9 +4,9 @@ from tkinter import ttk
 from dotenv import load_dotenv
 import os
 import json
+import threading
 from openai import OpenAI
 from spotify_interface import authenticate_spotify, create_playlist, add_tracks_to_playlist
-import threading
 
 # Load OpenAI and Spotify API keys from .env file
 load_dotenv()
@@ -20,7 +20,7 @@ class MessageHistory:
         self.messages = []
 
     def add_message(self, sender, message):
-        if message:  # Make sure the message is not 'None'
+        if message:
             self.messages.append({"sender": sender, "message": message})
         else:
             print(f"Attempted to add None message from {sender}.")
@@ -70,7 +70,6 @@ class ChatbotApp:
         self.temperature_value_label = tk.Label(self.temperature_frame, text=f"{self.temperature_slider.get():.1f}")
         self.temperature_value_label.pack(side=tk.RIGHT)
 
-        # Schedule the authentication message to be displayed after the GUI is set up
         self.root.after(10, self.spotify_auth_message)
 
     def spotify_auth_message(self):
@@ -100,7 +99,7 @@ class ChatbotApp:
             self.display_message("User", user_message)
             self.history.add_message("User", user_message)
             self.user_input.delete(0, tk.END)
-            threading.Thread(target=self.get_response).start()  # Use threading for async response
+            threading.Thread(target=self.get_response).start()
 
     def get_response(self):
         temperature = self.temperature_slider.get()
@@ -132,17 +131,19 @@ class ChatbotApp:
                         "properties": {
                             "playlist_id": {
                                 "type": "string",
-                                "description": "The ID of the playlist",
+                                "description": "The ID of the playlist.",
                             },
                             "songs": {
                                 "type": "array",
                                 "items": {
                                     "type": "object",
                                     "properties": {
-                                        "track_name": {"type": "string"},
-                                        "artist_name": {"type": "string"}
+                                        "artist_and_song": {
+                                            "type": "string",
+                                            "description": "A song, formatted as {artist} - {song}",
+                                        }
                                     },
-                                    "required": ["track_name", "artist_name"]
+                                    "required": ["artist_and_song"]
                                 },
                                 "description": "A list of songs to add to the playlist"
                             }
@@ -176,28 +177,11 @@ class ChatbotApp:
                     function_to_call = available_functions[function_name]
                     args = json.loads(tool_call.function.arguments)
                     function_response = function_to_call(**args)
-                    self.history.add_message("tool", json.dumps(function_response))  # Ensuring object format
+                    self.history.add_message("tool", json.dumps(function_response))
                     if function_name == "create_playlist":
-                        playlist_id = function_response['playlist_id']
                         self.display_message("Chatbot", function_response['message'])
-                        # After creating the playlist, add tracks to it
-                        songs = [
-                            {"track_name": "Smells Like Teen Spirit", "artist_name": "Nirvana"},
-                            {"track_name": "Black", "artist_name": "Pearl Jam"},
-                            {"track_name": "Would?", "artist_name": "Alice In Chains"},
-                            {"track_name": "Man in the Box", "artist_name": "Alice In Chains"},
-                            {"track_name": "Plush", "artist_name": "Stone Temple Pilots"},
-                            {"track_name": "Rooster", "artist_name": "Alice In Chains"},
-                            {"track_name": "Come As You Are", "artist_name": "Nirvana"},
-                            {"track_name": "Spoonman", "artist_name": "Soundgarden"},
-                            {"track_name": "Interstate Love Song", "artist_name": "Stone Temple Pilots"},
-                            {"track_name": "Heart-Shaped Box", "artist_name": "Nirvana"}
-                        ]
-                        add_tracks_response = self.handle_add_tracks_to_playlist(playlist_id=playlist_id, songs=songs)
-                        self.display_message("Chatbot", add_tracks_response)
                     elif function_name == "add_tracks_to_playlist":
                         self.display_message("Chatbot", f"Tracks added to playlist '{args['playlist_id']}' successfully.")
-                # After tool call, respond back to user to continue the conversation
                 second_response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=self.history.format_message_history(),
