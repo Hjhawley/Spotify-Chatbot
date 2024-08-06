@@ -191,9 +191,9 @@ class ChatbotApp:
                     function_to_call = available_functions[function_name]
                     args = json.loads(tool_call.function.arguments)
                     function_response = function_to_call(**args)
-                    self.history.add_message("tool", function_response)
+                    self.history.add_message("tool", json.dumps(function_response))
                     if function_name == "create_playlist":
-                        self.display_message("Chatbot", f"Playlist '{args['playlist_name']}' created successfully.")
+                        self.display_message("Chatbot", function_response['message'])
                     elif function_name == "add_tracks_to_playlist":
                         self.display_message("Chatbot", f"Tracks added to playlist '{args['playlist_id']}' successfully.")
                 second_response = client.chat.completions.create(
