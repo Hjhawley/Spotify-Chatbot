@@ -209,10 +209,14 @@ class ChatbotApp:
 
     def handle_add_tracks_to_playlist(self, playlist_id, songs):
         try:
-            track_uris = add_tracks_to_playlist(sp, user_id, playlist_id, songs)
-            return f"Tracks added to playlist '{playlist_id}': {track_uris}."
+            track_list = []
+            for song in songs:
+                artist, track = song['artist_and_song'].split(' - ')
+                track_list.append({"track_name": track.strip(), "artist_name": artist.strip()})
+            track_uris = add_tracks_to_playlist(sp, user_id, playlist_id, track_list)
+            return {"playlist_id": playlist_id, "message": f"Tracks added to playlist '{playlist_id}': {track_uris}."}
         except Exception as e:
-            return f"Error adding tracks to playlist: {str(e)}"
+            return {"playlist_id": playlist_id, "message": f"Error adding tracks to playlist: {str(e)}"}
 
     def update_temperature_label(self, event=None):
         self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")

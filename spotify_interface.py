@@ -48,8 +48,13 @@ def search_track(sp, track_name, artist_name):
 def add_tracks_to_playlist(sp, user_id, playlist_id, songs):
     track_uris = []
     for song in songs:
+        print(f"Searching for: {song['track_name']} by {song['artist_name']}")  # Debugging statement
         track_uri = search_track(sp, song['track_name'], song['artist_name'])
         if track_uri:
             track_uris.append(track_uri)
-    sp.user_playlist_add_tracks(user_id, playlist_id, track_uris)
+        else:
+            print(f"Track not found: {song['track_name']} by {song['artist_name']}")  # Debugging statement
+    if track_uris:
+        sp.user_playlist_add_tracks(user_id, playlist_id, track_uris)
+    print(f"Track URIs added: {track_uris}")  # Debugging statement
     return track_uris
