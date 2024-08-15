@@ -8,7 +8,6 @@ import threading
 from openai import OpenAI
 from spotify_interface import authenticate_spotify, create_playlist, add_tracks_to_playlist
 
-# Load OpenAI and Spotify API keys from .env file
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -43,7 +42,7 @@ class MessageHistory:
                     If the user does NOT have a specific request, have a conversation with the user about their taste.
                     Figure out what they like and don't like, both broadly and specifically.
                     When you feel like you have a good grasp on their taste, suggest a tailor-made playlist for them.
-                """.strip()
+                """.strip() # update this prompt to create a task list
             }
         ]
         for msg in self.messages:
@@ -70,6 +69,8 @@ class ChatbotApp:
 
         self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_message)
         self.send_button.pack(side=tk.RIGHT)
+        
+        # add self.playlist_id to reference when necessary
 
         self.temperature_frame = tk.Frame(self.root)
         self.temperature_frame.pack(pady=5, fill=tk.X)
@@ -177,6 +178,7 @@ class ChatbotApp:
             )
             bot_message = response.choices[0].message
             tool_calls = bot_message.tool_calls
+            # The main AI doesn't call tools; check its response for "calling tools"
             if tool_calls:
                 print(f"Calling a tool: {tool_calls[0]}")
                 self.history.add_message("assistant", bot_message.content)
@@ -185,6 +187,11 @@ class ChatbotApp:
                     "add_tracks_to_playlist": self.handle_add_tracks_to_playlist
                 }
                 for tool_call in tool_calls:
+                # CHANGE THIS TO A WHILE TRUE LOOP; 
+                # look for specific output to break out of loop
+                # Create a "checklist" of tool calls to complete and walk down them one at a time
+                # "agent finish" from lang chain
+                # if response includes "I'm done!!!" break out of loop
                     print(f"Tool call: {tool_call}")
                     function_name = tool_call.function.name
                     print(f"Function Name: {function_name}")
