@@ -1,4 +1,6 @@
 import json
+import os
+from openai import OpenAI
 from chatbot.helpers import CreatePlaylistHelper, AddTracksHelper
 from spotify_interface.spotify_tools import authenticate_spotify
 
@@ -15,12 +17,15 @@ class ManagerAgent:
         # Initialize task list
         self.task_list = []
 
+        # Initialize OpenAI client
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     def process_user_request(self, formatted_messages, temperature):
         """
         Processes the user's request, determines if a task list is needed, and manages the flow of tasks.
         """
-        # Simulate a response from OpenAI (this would be an API call in a real implementation)
-        ai_response = self.simulate_openai_response(formatted_messages, temperature)
+        # Replace the simulated response with an actual OpenAI API call
+        ai_response = self.get_openai_response(formatted_messages, temperature)
         print(f"AI Response: {ai_response}")
 
         # Parse the AI's response to determine what actions to take
@@ -29,22 +34,45 @@ class ManagerAgent:
         # Execute tasks
         return self.execute_tasks()
 
+    def get_openai_response(self, formatted_messages, temperature):
+        """
+        Makes an API call to OpenAI's GPT model to get a response based on the conversation history.
+        """
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",  # Or another model like "gpt-3.5-turbo"
+                messages=formatted_messages,
+                temperature=temperature
+            )
+            # Extract the content of the response
+            return response.choices[0].message['content']
+        except Exception as e:
+            print(f"Error fetching OpenAI response: {str(e)}")
+            return None
+
     def create_task_list_from_response(self, ai_response):
         """
         Parses the AI's response to create a list of tasks for the helper agents to perform.
         """
         task_list = []
-        if "create playlist" in ai_response and "add songs" in ai_response:
-            task_list.append({
-                "task": "create_playlist",
-                "playlist_name": ai_response["playlist_name"]
-            })
-            task_list.append({
-                "task": "add_tracks_to_playlist",
-                "songs": ai_response["songs"]
-            })
-        # Add more conditions for other complex requests
+        if ai_response:  # Check if there's a valid AI response
+            # Assuming the AI response is a JSON-like structure (you may need to parse it)
+            try:
+                response_data = json.loads(ai_response)
 
+                if "create_playlist" in response_data and "add_songs" in response_data:
+                    task_list.append({
+                        "task": "create_playlist",
+                        "playlist_name": response_data["create_playlist"]["playlist_name"]
+                    })
+                    task_list.append({
+                        "task": "add_tracks_to_playlist",
+                        "songs": response_data["add_songs"]["songs"]
+                    })
+                # Add more conditions for other complex requests
+
+            except json.JSONDecodeError:
+                print("Failed to parse AI response. Check the format.")
         return task_list
 
     def execute_tasks(self):
@@ -62,20 +90,3 @@ class ManagerAgent:
                 result = self.add_tracks_helper.perform_task(playlist_id, task['songs'])
                 responses.append(result)
         return "\n".join(responses)
-
-    def simulate_openai_response(self, formatted_messages, temperature):
-        """
-        This function simulates an OpenAI API call and response.
-        Replace this with the actual API call in your implementation.
-        """
-        # Simulated AI response based on user input
-        # This is a placeholder. Replace with actual logic to interact with OpenAI.
-        ai_response = {
-            "playlist_name": "Chill Vibes",
-            "songs": [
-                {"artist_and_song": "Artist 1 - Song 1"},
-                {"artist_and_song": "Artist 2 - Song 2"},
-                {"artist_and_song": "Artist 3 - Song 3"}
-            ]
-        }
-        return ai_response
