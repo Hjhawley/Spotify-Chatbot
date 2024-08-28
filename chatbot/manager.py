@@ -44,8 +44,7 @@ class ManagerAgent:
                 messages=formatted_messages,
                 temperature=temperature
             )
-            # Extract the content of the response
-            return response.choices[0].message['content']
+            return response.choices[0].message.content
         except Exception as e:
             print(f"Error fetching OpenAI response: {str(e)}")
             return None

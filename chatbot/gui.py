@@ -47,8 +47,9 @@ class ChatbotApp:
 
     def spotify_auth_message(self):
         try:
-            self.sp = self.manager_agent.authenticate_spotify()
-            self.user = self.sp.current_user()
+            # Access the authenticated Spotify client and user from ManagerAgent
+            self.sp = self.manager_agent.sp
+            self.user = self.manager_agent.sp.current_user()
             sp_message = f"Successfully authenticated user {self.user['display_name']}"
             self.display_message("Spotify", sp_message)
             self.history.add_message("Spotify", sp_message)
@@ -76,9 +77,14 @@ class ChatbotApp:
 
     def get_response(self):
         temperature = self.temperature_slider.get()
-        response = self.manager_agent.handle_user_message(self.history.format_message_history(), temperature)
-        self.display_message("Chatbot", response)
-        self.history.add_message("Chatbot", response)
+        response = self.manager_agent.process_user_request(self.history.format_message_history(), temperature)
+        
+        if response:
+            self.display_message("Chatbot", response)
+            self.history.add_message("Chatbot", response)
+        else:
+            self.display_message("Chatbot", "Error: Could not generate a response.")
+            self.history.add_message("Chatbot", "Error: Could not generate a response.")
 
     def update_temperature_label(self, event=None):
         self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")
