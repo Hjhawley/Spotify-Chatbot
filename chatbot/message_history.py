@@ -29,7 +29,9 @@ class MessageHistory:
                     If the user does NOT have a specific request, have a conversation with the user about their taste.
                     Figure out what they like and don't like, both broadly and specifically.
                     When you feel like you have a good grasp on their taste, suggest a tailor-made playlist for them.
-                """.strip()  # Adjust the system message as needed
+                    THIS IS IMPORTANT: If and only if the user asks for specific actions, such as creating a playlist or adding songs, 
+                    include the phrase ***GENERATING TASK LIST*** in your response. Otherwise, respond conversationally.
+                """.strip()
             }
         ]
         for msg in self.messages:

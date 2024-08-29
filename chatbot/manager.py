@@ -8,6 +8,7 @@ class ManagerAgent:
     def __init__(self):
         self.sp = authenticate_spotify()
         self.user_id = self.sp.current_user()['id']
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.create_playlist_helper = CreatePlaylistHelper(self.sp, self.user_id)
         self.add_tracks_helper = AddTracksHelper(self.sp, self.user_id)
         self.task_list = []
@@ -16,8 +17,18 @@ class ManagerAgent:
         ai_response = self.get_openai_response(formatted_messages, temperature)
         if ai_response:
             print(f"AI Response: {ai_response}")
-            self.task_list = self.create_task_list_from_response(ai_response)
-            return self.execute_tasks()
+
+            # Check if the response indicates task generation
+            if "***GENERATING TASK LIST***" in ai_response:
+                print("Detected task generation signal from AI response.")
+                self.task_list = self.create_task_list_from_response(ai_response)
+                if self.task_list:
+                    return self.execute_tasks()
+                else:
+                    return "Error: No tasks generated from the AI response."
+            else:
+                # If the response is purely conversational, just return it as-is
+                return ai_response
         else:
             return "Error: Could not generate a response."
 
@@ -28,38 +39,37 @@ class ManagerAgent:
                 messages=formatted_messages,
                 temperature=temperature
             )
+            print("Raw AI Response:", response)
             return response.choices[0].message.content
         except Exception as e:
             print(f"Error fetching OpenAI response: {str(e)}")
             return None
 
     def create_task_list_from_response(self, ai_response):
-        """
-        Parses the AI's response to create a list of tasks for the helper agents to perform.
-        """
         task_list = []
         print("Parsing AI response to generate tasks...")
 
+        # Strip the task generation signal from the response if present
+        #ai_response = ai_response.replace("***GENERATING TASK LIST***", "").strip()
+
         try:
-            response_data = json.loads(ai_response)  # Parse AI response as JSON
-            
-            # Extract playlist creation task
+            # Attempt to parse as JSON first
+            response_data = json.loads(ai_response)
             if "create_playlist" in response_data:
                 playlist_name = response_data["create_playlist"]["playlist_name"]
                 task_list.append({"task": "create_playlist", "playlist_name": playlist_name})
-                print(f"Task: Create playlist '{playlist_name}'")
-
-            # Extract add tracks task
             if "add_tracks_to_playlist" in response_data:
                 playlist_id = response_data["add_tracks_to_playlist"]["playlist_id"]
                 songs = response_data["add_tracks_to_playlist"]["songs"]
                 task_list.append({"task": "add_tracks_to_playlist", "playlist_id": playlist_id, "songs": songs})
-                print(f"Task: Add tracks to playlist '{playlist_id}' with songs: {songs}")
 
         except json.JSONDecodeError:
-            print("Failed to parse AI response as JSON. Check the format.")
-        except KeyError as e:
-            print(f"KeyError in parsing AI response: {str(e)}")
+            print("AI response is not JSON; treating as plain text.")
+            # Fallback to text-based task identification
+            if "create a playlist" in ai_response.lower():
+                task_list.append({"task": "create_playlist", "playlist_name": "Generated Playlist Name"})
+            if "add tracks" in ai_response.lower():
+                task_list.append({"task": "add_tracks_to_playlist", "playlist_id": self.create_playlist_helper.last_playlist_id, "songs": []})
         
         return task_list
 
