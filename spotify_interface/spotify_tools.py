@@ -7,6 +7,7 @@ from fuzzywuzzy import fuzz
 load_dotenv()
 
 def authenticate_spotify() -> spotipy.Spotify:
+    """Authenticates with Spotify using OAuth and returns a Spotify client."""
     scope = os.getenv("SPOTIPY_SCOPE")
     client_id = os.getenv("SPOTIPY_CLIENT_ID")
     client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
@@ -19,13 +20,15 @@ def authenticate_spotify() -> spotipy.Spotify:
     sp = spotipy.Spotify(auth_manager=auth_manager)
     return sp
 
-def create_playlist(sp, user_id, playlist_name):
+def create_playlist(sp: spotipy.Spotify, user_id: str, playlist_name: str) -> str:
+    """Creates a new Spotify playlist and returns its ID."""
     if isinstance(user_id, dict) and 'id' in user_id:
         user_id = user_id['id']
     playlist = sp.user_playlist_create(user_id, playlist_name)
     return playlist['id']
 
-def find_best_track_match(tracks, query):
+def find_best_track_match(tracks: list, query: str) -> dict:
+    """Finds the best track match based on a query using fuzzy matching."""
     best_match, best_score = None, 0
     for track in tracks:
         track_name = track['name']
@@ -37,7 +40,8 @@ def find_best_track_match(tracks, query):
             best_score = match_score
     return best_match
 
-def search_track(sp, track_name, artist_name):
+def search_track(sp: spotipy.Spotify, track_name: str, artist_name: str) -> str:
+    """Searches for a track on Spotify and returns its URI."""
     results = sp.search(q=f"track:{track_name} artist:{artist_name}", type='track')
     tracks = results['tracks']['items']
     if not tracks:
@@ -45,7 +49,8 @@ def search_track(sp, track_name, artist_name):
     best_match = find_best_track_match(tracks, f"{artist_name} {track_name}")
     return best_match['uri'] if best_match else None
 
-def add_tracks_to_playlist(sp, user_id, playlist_id, songs):
+def add_tracks_to_playlist(sp: spotipy.Spotify, user_id: str, playlist_id: str, songs: list) -> list:
+    """Adds tracks to a Spotify playlist and returns the list of added track URIs."""
     track_uris = []
     for song in songs:
         print(f"Searching for: {song['track_name']} by {song['artist_name']}")  # Debugging statement
