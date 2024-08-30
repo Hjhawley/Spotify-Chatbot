@@ -1,7 +1,7 @@
 import json
 import os
 from openai import OpenAI
-from spotify_interface.spotify_tools import create_playlist, add_tracks_to_playlist
+from spotify_interface.spotify_tools import create_playlist
 
 class CreatePlaylistHelper:
     def __init__(self, sp, user_id):
@@ -10,11 +10,13 @@ class CreatePlaylistHelper:
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.last_playlist_id = None
 
-    def perform_task(self, playlist_name):
+    def perform_task(self, task_details):
         try:
+            # Extract the relevant details from the JSON task details
+            playlist_name = task_details.get("playlist_name")
             print(f"CreatePlaylistHelper: Creating playlist '{playlist_name}'...")
 
-            # Make an OpenAI call to determine the details of the task (if needed)
+            # Call the OpenAI API with the extracted details to create the playlist
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -50,22 +52,28 @@ class CreatePlaylistHelper:
                 tool_choice="auto"
             )
 
-            # Extract tool call result
+            # Extract the tool call result and execute the task
             tool_calls = response.choices[0].message.tool_calls
             if tool_calls:
                 args = json.loads(tool_calls[0].function.arguments)
                 playlist_name = args["playlist_name"]
-                # Execute the tool call
+
+                # Execute the tool call to create the playlist
                 playlist_id = create_playlist(self.sp, self.user_id, playlist_name)
                 self.last_playlist_id = playlist_id
-                return f"Playlist '{playlist_name}' created successfully with ID: {playlist_id}"
+                return {"message": f"Playlist '{playlist_name}' created successfully with ID: {playlist_id}"}
 
             else:
-                return "Error: No tool calls were made by the AI."
+                return {"error": "No tool calls were made by the AI."}
 
         except Exception as e:
             print(f"Error in CreatePlaylistHelper: {str(e)}")
-            return f"Error creating playlist '{playlist_name}': {str(e)}"
+            return {"error": f"Error creating playlist '{playlist_name}': {str(e)}"}
+
+import json
+import os
+from openai import OpenAI
+from spotify_interface.spotify_tools import add_tracks_to_playlist
 
 class AddTracksHelper:
     def __init__(self, sp, user_id):
@@ -73,11 +81,14 @@ class AddTracksHelper:
         self.user_id = user_id
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    def perform_task(self, playlist_id, songs):
+    def perform_task(self, task_details):
         try:
+            # Extract the relevant details from the JSON task details
+            playlist_id = task_details.get("playlist_id")
+            songs = task_details.get("songs")
             print(f"AddTracksHelper: Adding tracks to playlist '{playlist_id}'...")
 
-            # Make an OpenAI call to determine the details of the task (if needed)
+            # Call the OpenAI API with the extracted details to add tracks to the playlist
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -127,20 +138,20 @@ class AddTracksHelper:
                 tool_choice="auto"
             )
 
-            # Extract tool call result
+            # Extract the tool call result and execute the task
             tool_calls = response.choices[0].message.tool_calls
             if tool_calls:
                 args = json.loads(tool_calls[0].function.arguments)
                 playlist_id = args["playlist_id"]
                 songs = args["songs"]
 
-                # Execute the tool call
+                # Execute the tool call to add tracks to the playlist
                 track_uris = add_tracks_to_playlist(self.sp, self.user_id, playlist_id, songs)
-                return f"Tracks added to playlist '{playlist_id}' successfully. Track URIs: {track_uris}"
+                return {"message": f"Tracks added to playlist '{playlist_id}' successfully. Track URIs: {track_uris}"}
 
             else:
-                return "Error: No tool calls were made by the AI."
+                return {"error": "No tool calls were made by the AI."}
 
         except Exception as e:
             print(f"Error in AddTracksHelper: {str(e)}")
-            return f"Error adding tracks to playlist '{playlist_id}': {str(e)}"
+            return {"error": f"Error adding tracks to playlist '{playlist_id}': {str(e)}"}
