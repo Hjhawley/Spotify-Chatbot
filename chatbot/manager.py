@@ -15,9 +15,9 @@ class ManagerAgent:
     def process_user_request(self, formatted_messages, temperature):
         ai_response = self.get_openai_response(formatted_messages, temperature)
         if ai_response:
-            print(f"AI Response: {ai_response}")
+            print(f"AI Response: {ai_response}")  # Debugging output
             if "***GENERATING TASK LIST***" in ai_response:
-                # Call the tool to generate the task list with AI-generated parameters
+                print("Task list generation detected.")  # Debugging output
                 task_list = self.generate_task_list(ai_response)
                 if task_list:
                     return self.manage_tasks(task_list)
@@ -31,43 +31,64 @@ class ManagerAgent:
     def generate_task_list(self, ai_response):
         """The ManagerAgent uses GPT-4 to intelligently create the prompt and then generate a task list."""
         try:
-            # Define the tools to be used by the AI
-            tools = [
+            functions = [
                 {
-                    "type": "function",
-                    "function": {
-                        "name": "generate_task_list",
-                        "description": "Generate a step-by-step task list based on the user's request.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "prompt": {
-                                    "type": "string",
-                                    "description": "A detailed prompt describing the task to be accomplished."
-                                }
-                            },
-                            "required": ["prompt"],
+                    "name": "generate_task_list",  # Ensure the name field is present and correct
+                    "description": "Generate a step-by-step task list based on the user's request.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "prompt": {
+                                "type": "string",
+                                "description": "A detailed prompt describing the task to be accomplished."
+                            }
                         },
-                    }
+                        "required": ["prompt"],
+                    },
                 }
             ]
 
-            # Use GPT-4 to generate the prompt and call the tool
+            # Modify the prompt to explicitly instruct the AI to output JSON
+            system_prompt = (
+                "You are an AI assistant. Based on the conversation, generate a step-by-step task list in JSON format. "
+                "The JSON object should contain steps as keys and the corresponding descriptions as values. "
+                "Do not include any additional text, just return the JSON object."
+            )
+
+            # Debugging: Check the prompt and request details
+            print(f"Sending system prompt: {system_prompt}")
+            print(f"AI response content: {ai_response}")
+
+            # Use GPT-4 to generate the prompt and call the function
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are an AI assistant. Based on the conversation, create a detailed prompt that describes the task the user wants to accomplish."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": ai_response}
                 ],
                 temperature=0.5,
-                tools=tools,
-                function_call={"name": "generate_task_list"}  # Call the generate_task_list tool
+                functions=functions,  # Pass the corrected functions parameter
+                function_call={"name": "generate_task_list"}  # Call the generate_task_list function
             )
 
-            # Parse the response to extract the task list
-            task_list = json.loads(response.choices[0].message.content)
-            print(f"Generated Task List: {task_list}")
-            return task_list
+            # Check if the function was called
+            print(f"Function Call Attempted: {response.choices[0].message.function_call}")  # Debugging output
+
+            # Check if the response contains valid content
+            response_content = response.choices[0].message.content
+            print(f"Raw AI Response Content: {response_content}")  # Debugging output
+            if response_content is None:
+                print("Error: The AI response returned no content.")
+                return None
+
+            # Try to parse the response content as JSON
+            try:
+                task_list = json.loads(response_content)
+                print(f"Generated Task List: {task_list}")
+                return task_list
+            except json.JSONDecodeError as e:
+                print(f"Error parsing task list: {str(e)}")
+                return None
 
         except Exception as e:
             print(f"Error generating task list: {str(e)}")
