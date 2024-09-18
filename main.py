@@ -1,5 +1,5 @@
 import tkinter as tk
-from chatbot.gui import ChatbotApp
+from gui import ChatbotApp
 
 if __name__ == "__main__":
     root = tk.Tk()
