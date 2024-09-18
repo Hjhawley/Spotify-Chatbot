@@ -1,16 +1,16 @@
 import tkinter as tk
 from tkinter import scrolledtext, ttk
 import threading
-from chatbot.manager import ManagerAgent
-from chatbot.message_history import MessageHistory
+from chatbot_agent import ChatbotAgent
+from message_history import MessageHistory
 
 class ChatbotApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Chatbot")
+        self.root.title("Spotify Chatbot")
 
-        # Initialize ManagerAgent and MessageHistory
-        self.manager_agent = ManagerAgent()
+        # Initialize ChatbotAgent and MessageHistory
+        self.chatbot_agent = ChatbotAgent()
         self.history = MessageHistory()
 
         # Setup the history display (ScrolledText widget)
@@ -47,16 +47,16 @@ class ChatbotApp:
 
     def spotify_auth_message(self):
         try:
-            # Access the authenticated Spotify client and user from ManagerAgent
-            self.sp = self.manager_agent.sp
-            self.user = self.manager_agent.sp.current_user()
+            # Authenticate with Spotify and get the current user
+            self.chatbot_agent.authenticate_spotify()
+            self.user = self.chatbot_agent.sp.current_user()
             sp_message = f"Successfully authenticated user {self.user['display_name']}"
-            self.display_message("Spotify", sp_message)
-            self.history.add_message("Spotify", sp_message)
+            self.display_message("System", sp_message)
+            self.history.add_message("System", sp_message)
         except Exception as e:
             sp_message = f"Error during Spotify authentication: {str(e)}"
-            self.display_message("Spotify", sp_message)
-            self.history.add_message("Spotify", sp_message)
+            self.display_message("System", sp_message)
+            self.history.add_message("System", sp_message)
 
     def display_message(self, sender, message):
         if message:
@@ -77,14 +77,15 @@ class ChatbotApp:
 
     def get_response(self):
         temperature = self.temperature_slider.get()
-        response = self.manager_agent.process_user_request(self.history.format_message_history(), temperature)
-        
-        if response:
-            self.display_message("Chatbot", response)
-            self.history.add_message("Chatbot", response)
+        assistant_response = self.chatbot_agent.process_user_message(self.history.format_message_history(), temperature)
+
+        if assistant_response:
+            self.display_message("Assistant", assistant_response)
+            self.history.add_message("Assistant", assistant_response)
         else:
-            self.display_message("Chatbot", "Error: Could not generate a response.")
-            self.history.add_message("Chatbot", "Error: Could not generate a response.")
+            error_message = "Error: Could not generate a response."
+            self.display_message("Assistant", error_message)
+            self.history.add_message("Assistant", error_message)
 
     def update_temperature_label(self, event=None):
         self.temperature_value_label.config(text=f"{self.temperature_slider.get():.1f}")
