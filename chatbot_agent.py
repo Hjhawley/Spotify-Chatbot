@@ -63,8 +63,9 @@ class ChatbotAgent:
     def process_user_message(self, formatted_message_history, temperature):
         """Processes the user's message and generates a response."""
         try:
+            # Initial assistant response
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=formatted_message_history,
                 functions=self.functions,
                 function_call="auto",
@@ -73,10 +74,10 @@ class ChatbotAgent:
 
             assistant_message = response.choices[0].message
 
-            # Check if the assistant wants to call a function
-            if assistant_message.function_call:
+            while assistant_message.function_call:
                 function_name = assistant_message.function_call.name
                 arguments = json.loads(assistant_message.function_call.arguments)
+                print(f"Assistant is calling function '{function_name}' with arguments: {arguments}")
 
                 # Handle the function call
                 function_response_content = self.handle_function_call(function_name, arguments)
@@ -85,20 +86,20 @@ class ChatbotAgent:
                 self.message_history.add_message("Assistant", assistant_message.content or "")
                 self.message_history.add_function_response(function_name, function_response_content)
 
-                # Generate the final response
-                final_response = self.client.chat.completions.create(
-                    model="gpt-4o",
+                # Generate the next assistant response
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
                     messages=self.message_history.format_message_history(),
+                    functions=self.functions,
+                    function_call="auto",
                     temperature=temperature,
                 )
+                assistant_message = response.choices[0].message
 
-                final_message = final_response.choices[0].message.content
-                self.message_history.add_message("Assistant", final_message)
-                return final_message
-            else:
-                # If no function call, return the assistant's message
-                self.message_history.add_message("Assistant", assistant_message.content)
-                return assistant_message.content
+            # When assistant provides a final response without a function call
+            final_message = assistant_message.content
+            self.message_history.add_message("Assistant", final_message)
+            return final_message
 
         except Exception as e:
             print(f"Error processing user message: {e}")
@@ -109,11 +110,19 @@ class ChatbotAgent:
         if function_name == "create_playlist":
             playlist_name = arguments.get("playlist_name")
             playlist_id = create_playlist(self.sp, self.user_id, playlist_name)
+            self.last_playlist_id = playlist_id  # Store the last created playlist ID
             result = {"playlist_id": playlist_id}
+            print(f"Created playlist with ID: {playlist_id}")  # Debugging statement
             return json.dumps(result)
         elif function_name == "add_songs_to_playlist":
             playlist_id = arguments.get("playlist_id")
             songs = arguments.get("songs")
+            if not playlist_id:
+                # Use the last playlist ID if not provided
+                playlist_id = self.last_playlist_id
+                print(f"No playlist_id provided, using last_playlist_id: {playlist_id}")
+            print(f"Received playlist_id: {playlist_id}")
+            print(f"Songs to add: {songs}")
             added_tracks = add_tracks_to_playlist(self.sp, self.user_id, playlist_id, songs)
             result = {"added_tracks": added_tracks}
             return json.dumps(result)
