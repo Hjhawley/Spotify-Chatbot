@@ -64,7 +64,7 @@ class ChatbotAgent:
         try:
             # Initial assistant response
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=formatted_message_history,
                 functions=self.functions,
                 function_call="auto",
@@ -86,7 +86,7 @@ class ChatbotAgent:
 
                 # Generate the next assistant response
                 response = self.client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4o",
                     messages=self.message_history.format_message_history(),
                     functions=self.functions,
                     function_call="auto",
