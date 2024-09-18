@@ -28,12 +28,10 @@ class MessageHistory:
                 "role": "system",
                 "content": (
                     "You are a helpful assistant that can manage Spotify playlists using function calls. "
-                    "When the user requests an action that requires multiple steps, you should plan accordingly "
-                    "and make multiple function calls as needed to fulfill the user's request. "
-                    "When you create a playlist, you'll receive a 'playlist_id' from the function result. "
-                    "Use this 'playlist_id' in subsequent function calls when adding songs to the playlist. "
-                    "Do not mention the 'playlist_id' to the user; instead, use it internally to perform actions. "
-                    "Provide concise and clear responses to the user."
+                    "When you call a function, you will receive the result, which you should use to decide "
+                    "the next steps. Do not repeatedly call the same function unless necessary. "
+                    "After creating a playlist, proceed to add songs to it if required. "
+                    "Do not mention technical details like 'playlist_id' to the user; focus on providing a helpful response."
                 ),
             }
         ]

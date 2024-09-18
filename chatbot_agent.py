@@ -36,7 +36,6 @@ class ChatbotAgent:
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "playlist_id": {"type": "string", "description": "ID of the playlist."},
                         "songs": {
                             "type": "array",
                             "items": {
@@ -50,7 +49,7 @@ class ChatbotAgent:
                             "description": "List of songs to add.",
                         },
                     },
-                    "required": ["playlist_id", "songs"],
+                    "required": ["songs"],
                 },
             },
         ]
@@ -82,8 +81,7 @@ class ChatbotAgent:
                 # Handle the function call
                 function_response_content = self.handle_function_call(function_name, arguments)
 
-                # Add the assistant's message and the function response to the message history
-                self.message_history.add_message("Assistant", assistant_message.content or "")
+                # Add the function response to the message history
                 self.message_history.add_function_response(function_name, function_response_content)
 
                 # Generate the next assistant response
@@ -95,11 +93,14 @@ class ChatbotAgent:
                     temperature=temperature,
                 )
                 assistant_message = response.choices[0].message
+                print(f"Assistant message content: {assistant_message.content}")
 
-            # When assistant provides a final response without a function call
-            final_message = assistant_message.content
-            self.message_history.add_message("Assistant", final_message)
-            return final_message
+            print(f"Final assistant message: {assistant_message.content}")
+            # Add the final assistant message to the history
+            if assistant_message.content:
+                self.message_history.add_message("assistant", assistant_message.content)
+
+            return assistant_message.content
 
         except Exception as e:
             print(f"Error processing user message: {e}")
@@ -111,8 +112,12 @@ class ChatbotAgent:
             playlist_name = arguments.get("playlist_name")
             playlist_id = create_playlist(self.sp, self.user_id, playlist_name)
             self.last_playlist_id = playlist_id  # Store the last created playlist ID
-            result = {"playlist_id": playlist_id}
-            print(f"Created playlist with ID: {playlist_id}")  # Debugging statement
+            result = {
+                "status": "success",
+                "playlist_name": playlist_name,
+                # Do not include playlist_id in the response to the assistant
+            }
+            print(f"Created playlist with ID: {playlist_id}")
             return json.dumps(result)
         elif function_name == "add_songs_to_playlist":
             playlist_id = arguments.get("playlist_id")
@@ -124,7 +129,10 @@ class ChatbotAgent:
             print(f"Received playlist_id: {playlist_id}")
             print(f"Songs to add: {songs}")
             added_tracks = add_tracks_to_playlist(self.sp, self.user_id, playlist_id, songs)
-            result = {"added_tracks": added_tracks}
+            result = {
+                "status": "success",
+                "added_songs": songs,
+            }
             return json.dumps(result)
         else:
             return json.dumps({"error": f"Function {function_name} not implemented."})

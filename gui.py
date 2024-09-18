@@ -50,7 +50,7 @@ class ChatbotApp:
             # Authenticate with Spotify and get the current user
             self.chatbot_agent.authenticate_spotify()
             self.user = self.chatbot_agent.sp.current_user()
-            sp_message = f"Successfully authenticated user {self.user['display_name']}"
+            sp_message = f"Successfully authenticated Spotify user {self.user['display_name']}"
             self.display_message("System", sp_message)
             self.history.add_message("System", sp_message)
         except Exception as e:
